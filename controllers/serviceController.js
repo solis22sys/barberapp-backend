@@ -1,14 +1,22 @@
 const Service = require('../models/Service');
+const Appointment = require('../models/Appointment');
 const { validationResult } = require('express-validator');
 
 // Obtener todos los servicios
 exports.getServices = async (req, res) => {
   try {
-
+    // Deshabilitar caché para esta respuesta
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    
+    // Aplicar filtro según el rol
     const filter = req.user?.role === 'admin' ? {} : { available: true };
     const services = await Service.find(filter);
+    
     res.json(services);
   } catch (error) {
+    console.error('Error al obtener servicios:', error);
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
@@ -27,6 +35,7 @@ exports.getServiceById = async (req, res) => {
     if (error.kind === 'ObjectId') {
       return res.status(404).json({ message: 'Servicio no encontrado' });
     }
+    console.error('Error al obtener servicio:', error);
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
@@ -39,13 +48,14 @@ exports.createService = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { name, description, duration, price } = req.body;
+    const { name, description, duration, price, available } = req.body;
     
     const service = new Service({
       name,
       description,
       duration,
-      price
+      price,
+      available: available !== undefined ? available : true
     });
     
     const savedService = await service.save();
@@ -54,6 +64,7 @@ exports.createService = async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).json({ message: 'El servicio ya existe' });
     }
+    console.error('Error al crear servicio:', error);
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
@@ -88,6 +99,7 @@ exports.updateService = async (req, res) => {
     if (error.code === 11000) {
       return res.status(400).json({ message: 'El servicio ya existe' });
     }
+    console.error('Error al actualizar servicio:', error);
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
@@ -115,6 +127,7 @@ exports.deleteService = async (req, res) => {
     if (error.kind === 'ObjectId') {
       return res.status(404).json({ message: 'Servicio no encontrado' });
     }
+    console.error('Error al eliminar servicio:', error);
     res.status(500).json({ message: 'Error del servidor' });
   }
 };
